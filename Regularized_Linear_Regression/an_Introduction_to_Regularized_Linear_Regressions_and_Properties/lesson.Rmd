@@ -1,0 +1,346 @@
+Lesson Name:  an Introduction to Regularized Linear Regressions and Properties
+Course Name:  Regularized Linear Regression
+Type:         Standard
+Author:       Yuxin(Daisy) Zhu
+Organization: Johns Hopkins University Department of Biostatistics
+Version:      2.1.1
+================================================================
+
+--- &text
+
+In this course, I will be talking about regularized linear regressions, their properties, and their applications in R. 
+
+--- &text
+
+Particularly, the first lesson talks about the general ideas of regularized linear regressions, and introduces some properties of the estimators that would hopefully give us an insight about how this method works, by going through some simple data examples interactively with the learner.
+
+--- &text
+
+The second lesson covers the application of ridge regression in R by going through a real data example, and the third lesson covers the usage of lasso in R, also by going through a real data example. The fourth lesson talks about some potential issues with using this method.
+
+--- &text
+
+Now, let's get formally started!
+
+--- &text
+Here's a warm-up quiz. It's normal and OK if you do not know the answer, I just do not want you lost in my long narrative. :-)
+
+--- &mult_question
+
+The basic simple idea of regularized linear regression is:
+
+_1. penalty_
+2. leverage
+3. weight
+
+*** .hint
+It is "penalty".
+
+
+--- &text
+
+Now, let me explain why it is "penalty".
+
+--- &text
+
+As many may know, the ordinary least square estimator in a linear regression is obtained by minimizing sum of `y_i - x_i * beta`, where `beta` is a vector of length `p + 1`, the intercept being `beta_0`, and the rest being `beta_1, ... , beta_p`.
+
+--- &text
+From now on, let's redefine notations here such that the intercept is `beta_0`, and the rest parameters are put in vector `beta`. This is for the convenience of illustrating ideas.
+
+--- &text
+
+The very simple idea of regularized linear regression is to penalize a large value of `sum(beta ^ 2)` (in the case of ridge regression), or a large value of `sum(abs(beta))`, by minimizing the sum squares as previously talked about, plus a penalty item `lambda * sum(beta ^ 2)`, or `lambda * sum(abs(beta))`. Here, `lambda` is a number prespecified to determine how much penalization you want to place for a large value, and is often referred to as the tuning parameter. We are not penalizing the intercept because it is of no interest to us and the data can always be centered.
+
+--- &text
+The reason for using such methods is to gain prediction accuracy and get better interpretation .
+
+--- &text
+
+Let's implement ridge regression on a simple example, and try to explore some of its properties.
+
+--- &cmd_question
+Install package `MASS` using function `install.packages()`. Do not restart R session.
+
+```{r}
+install.packages("MASS")
+```
+
+*** .hint
+Type `install.packages("MASS")`, and press Enter.
+
+--- &cmd_question
+Load package `MASS` using function `library()`
+
+```{r}
+library(MASS)
+```
+
+*** .hint
+Type `library(MASS)`, and press Enter.
+
+--- &text
+Now, you are ready to use the function `lm.ridge()` to do some simple ridge regressions and explore some ridge regression's prorperties.
+
+--- &text
+Let's generate a simple dataset for the purpose of illustration.
+
+--- &cmd_question
+Set seed to 37.
+
+```{r}
+set.seed(37)
+```
+
+*** .hint
+
+Type `set.seed(37)`, and press Enter. Setting seed when generating random numbers is always a good habit.
+
+--- &cmd_question
+Generate 20 standard normal random numbers using function `rnorm()`, and assign it to `x1`.
+
+```{r}
+x1 <- rnorm(20)
+```
+
+*** .hint
+Type `x1 <- rnorm(20)`, and press Enter. 
+
+--- &cmd_question
+Generate 20 normal random numbers using `rnorm()`, and assign it to `x2`. Use `mean = x1`, and `sd = 0.01`.
+
+```{r}
+x2 <- rnorm(20, mean = x1, sd = 0.01)
+```
+
+*** .hint
+Type `x2 <- rnorm(20, mean = x1, sd = 0.01)`, and press Enter.
+
+--- &cmd_question
+Generate 20 normal random numbers using `rnorm`. Use `mean = 3 + x1 + x2`, and `sd = 1`, and assign the generated vector to `y`.
+
+```{r}
+y <- rnorm(20, mean = 3 + x1 + x2, sd = 1)
+```
+
+*** .hint
+Type `y <- rnorm(20, mean = 3 + x1 + x2, sd = 1)`, and press Enter.
+
+--- &cmd_question
+Use function `lm.ridge()` to do a ridge regression, using the formula `y ~ x1 + x2`, which means to regress `y` over `x1` and `x2`, and `lambda = 0`. Do not assign it to anything, so you will be able to see the result promptly. (Do not assign unless instructed in all following questions.)
+
+```{r}
+lm.ridge(y ~ x1 + x2, lambda = 0)
+```
+
+*** .hint
+Type `lm.ridge(y ~ x1 + x2, lambda = 0)`, and press Enter.
+
+--- &text
+Because we have let `lambda = 0`, estimators from ridge regression here should be essentially identical to ordinary least square estimators. Let's check it out!
+
+--- &cmd_question
+Use `lm()` to fit a linear regression model, use `$` to look at the `coef`, which stands for "coefficients".
+
+```{r}
+lm(y ~ x1 + x2)$coef
+```
+
+*** .hint
+Type `lm(y ~ x1 + x2)$coef`, and press Enter.
+
+--- &text
+
+We can see that these two estimators are identical, because the regularized linear regression method reduces to a linear regression when `lambda = 0`.
+
+--- &text
+Now we have the coefficients from linear regression, let's see how a non-trivial ridge regression outperforms it.
+
+--- &cmd_question
+
+Use function `lm.ridge()` with formula `y ~ x1 + x2` and `lambda = 1` to fit a ridge regression model.
+
+```{r}
+lm.ridge(y ~ x1 + x2, lambda = 1)
+```
+
+*** .hint
+Type `lm.ridge(y ~ x1 + x2, lamda = 1)`
+
+--- &text
+Since the data was simulated by us, we know that the "truth" of coefficients are `3`, `1`, and `1` respectively. We can see from this example, that with such a small sample size, ridge regression gives much better estimators.
+
+--- &text
+Ridge regression paramters actually has a nice closed form, by inverting `t(X) %*% X + lambda * diag(1, ncol(X))` and multiply it with `t(X) %*% y`, where `X` is the design matrix.
+
+--- &text
+Let's continue with our simple example and see if it works out!
+
+--- &cmd_question
+Form the design matrix using function `cbind()` on `rep(1, 20)`, `x1`, and `x2`, and assign it to `X`
+
+```{r}
+X <- cbind(rep(1, 20), x1, x2)
+```
+
+*** .hint
+Type `X <- cbind(rep(1, 20), x1, x2)`, and press Enter.
+
+--- &cmd_question
+Because we have `lambda = 1` in our previous case, invert the matrix `t(X) %*% X + diag(1, ncol(X))` using function `solve()`, and multiply it with `t(X) %*% y`.
+
+```{r}
+solve(t(X) %*% X + diag(1, ncol(X))) %*% t(X) %*% y
+```
+
+*** .hint
+Type `solve(t(X) %*% X + diag(1, ncol(X))) %*% t(X) %*% y`, and press Enter.
+
+--- &text
+There is a tiny difference due to computational reasons, but you get the idea that we can calculate ridge regression estimators this way.
+
+--- &text
+
+There are two other ways of looking at how ridge regression works.
+
+--- &text
+One is to see it as putting some prior on estimators. The other is decompose the design matrix using singular value decomposition and observe that ridge regression shrinks the most the directions with small singular value that corresponds to the column space of design matrix that has small variance. 
+
+--- &text
+I just want to give the learner more intuition about how a regularized method works, and would like to leave the details for the learner to explore if he or she is interested. A good reference would be "Elements of Statistical Learning" Chapter 3.
+
+--- &text
+Lasso estimators do not have a closed form relationship as the ridge regression estimators do, but there lasso can be preferred when we have more variables than observations by coercing some or even many of the parameters to be zero while the ridge regression method only shrinks the estimators. 
+
+--- &text
+Actually, when we have orthonormal columns of `X`, lasso estimators are exactly thresheld ones with the threshold determined by the tuning parameter.
+
+--- &text
+Let's see an extremely simple example for this.
+
+--- &cmd_question
+Install the package `far` for matrix column vector orthonormalization, using function `install.packages()`.
+
+
+```{r}
+install.packages("far")
+```
+
+*** .hint
+Type `install.packages("far")`, press Enter.
+
+--- &cmd_question
+Load the `far` package using function `library()`.
+
+```{r}
+library(far)
+```
+
+*** .hint
+Type `library(far)`, and press Enter.
+
+--- &cmd_question
+Use function `orthonormalization()` on `X`,set parameter `basis = FALSE`, and assign the value to `X_on`.
+
+```{r}
+X_on <- orthonormalization(X, basis = FALSE)
+```
+
+*** .hint
+Type `X_on <- orthonormalization(X, basis = FALSE)`, and press Enter.
+
+--- &text
+Now we have an orthonormal matrix `X_on`, let's use `lm()`, manually threshold it as previously described.
+
+--- &cmd_question
+Use function `lm()` to fit `y ~ X_on`, take the 3rd and 4th elements of coefficients, and assign the vector to `beta_lm`.
+
+```{r}
+beta_lm <- lm(y ~ X_on)$coef[3:4]
+```
+
+*** .hint
+Type `beta_lm <- lm(y ~ X_on)$coef[3:4]`, and press Enter.
+
+--- &cmd_question
+Minus `beta_lm` by `1`(the value of tuning parameter that we are going to use), take the positive part of it using function `max()`, and multiply the whole thing by `sign(beta_lm)`. Assign the calculated vector to `beta_lasso_manual`.
+
+```{r}
+beta_lasso_manual <- sign(beta_lm) * c(max(beta_lm[1] - 1, 0), max(beta_lm[2] - 1, 0))
+```
+
+*** .hint
+Type `beta_lasso_manual <- sign(beta_lm) * c(max(beta_lm[1], 0), max(beta_lm[2], 0))`, and press Enter.
+
+--- &cmd_question
+Display the value of `beta_lm` using function `print()`.
+
+```{r}
+print(beta_lm)
+```
+
+*** .hint
+Type `print(beta_lm)`, and press Enter.
+
+--- &cmd_question
+Display the value of `beta_lasso_manual` using function `print()`.
+
+```{r}
+print(beta_lasso_manual)
+```
+
+*** .hint
+Type `print(beta_lasso_manual)`, and press Enter
+
+--- &text
+Now let's apply the lasso method directly on `y ~ X_on`.
+
+--- &cmd_question
+Start by install the package `glmnet`.
+
+```{r}
+install.packages("glmnet")
+```
+
+*** .hint
+Type `install.packages("glmnet")`, and press Enter.
+
+--- &cmd_question
+Load package `glmnet` using function `library`.
+
+```{r}
+library(glmnet)
+```
+
+*** .hint
+Type `library(glmnet)`, and press Enter.
+
+--- &cmd_question
+Use function `glmnet()` on `X_on` and `y`, with parameters `alpha = 1`, `lambda = 0.23` (this is due to the fact that the function is not exactly minimizing the function we proposed, and the tuning parameter here is not exact, but close), `family = "gaussian"`, and `intercpt = TRUE`. Put the whole fitted model in the function `coef`, and assign the extracted coefficients to `beta_lasso`
+
+```{r}
+beta_lasso <- coef(glmnet(X_on, y, alpha =1, lambda = 0.3, family = "gaussian", intercept = TRUE))
+```
+
+*** .hint
+Type `beta_lasso <- coef(glmnet(X_on, y, alpha =1, lambda = 0.3, family = "gaussian", intercept = TRUE))`, and press Enter.
+
+--- &cmd_question
+Display `beta_lasso` using function `print()`.
+
+```{r}
+print(beta_lasso)
+```
+
+*** .hint
+Type `print(beta_lasso)`, and press Enter.
+
+--- &text
+Observe that `beta_lasso` and `beta_lasso_manual` have close values. Theoretically, these two methods, manually truncating `lm()` coefficients and using lasso, should yield the same parameters. But because the tuning parameter we used in lasso is kind of an approximation, and also due to computational reasons, there is a slight difference.
+
+--- &text
+Now, we have got a taste of what regularized linear regression methods, and hopefully have understood some properties of ridge regression and lasso. We will be covering applications of these two methods by going through two real data examples in 2nd and 3rd lessons.
+
+--- &text
+Hope you enjoyed this lesson and will enjoy the ones that follow! :-)
+

@@ -1,0 +1,213 @@
+Lesson Name:  Real Data Application of Lasso in R
+Course Name:  Regularized Linear Regression
+Type:         Standard
+Author:       Yuxin(Daisy) Zhu
+Organization: Johns Hopkins University Department of Biostatistics
+Version:      2.1.1
+================================================================
+
+--- &text
+Welcome to lesson 3! In this lesson, we will see a real data example using the YearPredictionMSD dataset on UCI repository, and implementing the lasso method.
+
+--- &text
+This data set is mainly for the prediction of release year of a song from audio features, and would be our purpose of model fitting in this example.
+
+--- &text
+We will be splitting the data set into a training half and a testing half, applying lasso on the training set, and examining the prediction of such a method using the estimated coefficients and the testing set. The package we will be using is `glmnet`, and the main function for regression is `glmnet()`.
+
+--- &text
+Let's get started with the data!
+
+--- &cmd_question
+Download the data from UCI repository using function `download.file()`, and url "http://archive.ics.uci.edu/ml/machine-learning-databases/00203/YearPredictionMSD.txt.zip", save it the file "data2.txt.zip". This might take a while.
+
+```{r}
+download.file("http://archive.ics.uci.edu/ml/machine-learning-databases/00203/YearPredictionMSD.txt.zip", destfile = "data2.txt.zip")
+```
+
+*** .hint
+Type `download.file("http://archive.ics.uci.edu/ml/machine-learning-databases/00203/YearPredictionMSD.txt.zip", destfile = "data2.txt.zip")`, and press enter.
+
+--- &cmd_question
+Unzip the file by typing `unzip(paste0(getwd(), "/data2.txt.zip"))`.
+
+```{r}
+unzip(paste0(getwd(), "/data2.txt.zip"))
+```
+
+*** .hint
+Type `unzip(paste0(getwd(), "/data2.txt.zip"))`, and press Enter.
+
+--- &cmd_question
+Load the data using `read.table()` to a variable named `data2`, let `sep = ","`. Note that the name of the file to be loaded is "YearPredictionMSD.txt". This might take a while.
+
+```{r}
+data2 <- read.table("YearPredictionMSD.txt", sep = ",")
+```
+
+*** .hint
+Type `data2 <- read.table("YearPredictionMSD.txt", sep = ",")`, and press Enter.
+
+--- &cmd_question
+Name the first column of `data2` `year`.
+
+```{r}
+names(data2)[1] <- "year"
+```
+
+--- &text
+This data set has 515345 observations of 91 variables, and does not contain any missing value. We are going to split this dataset into a training set that contains 300000 observations, and the rest into a testing set.
+
+--- &cmd_question
+Set seed to 37.
+
+```{r}
+set.seed(37)
+```
+
+*** .hint
+Type `set.seed(37)`, and press Enter.
+
+--- &cmd_question
+Sample length of 300000 vector from `c(1:515345)`, using function `sample()`, and assign it to a variable named `train`.
+
+```{r}
+train <- sample(c(1:515345), 300000)
+```
+
+*** .hint
+Type `train <- sample(c(1:515345), 300000)`, and press Enter.
+
+--- &cmd_question
+Assign the rest of index in `c(1:515345)` to `test`.
+
+```{r}
+test <- c(1:515345)[-train]
+```
+
+*** .hint
+Type `test <- c(1:515345)[-train]`, and press Enter.
+
+--- &cmd_question
+Assign `data2` rows with index in `train` to `data2train`, which is the training dataset.
+
+```{r}
+data2train <- data2[train, ]
+```
+
+*** .hint
+Type `data2train <- data2[train, ]`, and press Enter.
+
+--- &cmd_question
+Assign `data2` rows with index in `test` to `data2test`, which is the testing set.
+
+```{r}
+data2test <- data2[test, ]
+```
+
+*** .hint
+Type `data2test <- data2[test, ]`, and press Enter.
+
+--- &cmd_question
+Apply lasso method on `data2train`. Note that input should be a design matrix and a vevctor, set `family = "gaussian"`, and `alpha = 1`. `alpha` is a paramter that specifies the level of compromise between ridge regression and lasso, and the value `1` means lasso penalty. Assign the object to `mylasso`.
+
+```{r}
+mylasso <- glmnet(as.matrix(data2train[, 2:91]), data2train[, 1], family = "gaussian", alpha = 1)
+```
+
+*** .hint
+Type `mylasso <- glmnet(as.matrix(data2train[, 2:91]), data2train[, 1], family = "gaussian", alpha = 1)`, and press Enter.
+
+--- &cmd_question
+Plot `mylasso` to see the behavior of parameters with increasing tuning parameter value. Set `xvar = "lambda"`.
+
+```{r}
+plot(mylasso, xvar = "lambda")
+```
+
+*** .hint
+Type `plot(mylasso, xvar = "lambda")`, and press Enter.
+
+--- &text
+Now we have fit the model with different values of `lambda`, the range of which is selected by an algorithm imbeded in the function, let's move on to the selection of `lambda` value. Cross validation can be used, and it can be done by the usage of function `cv.glmnet()` in R.
+
+--- &cmd_question
+Use function on the design matrix and the response vector in `data2train`, set `alpha = 1`, and assign the object to `cv.mylasso`.
+
+```{r}
+cv.mylasso <- cv.glmnet(as.matrix(data2train[, 2:91]), data2train[, 1], alpha = 1)
+```
+
+*** .hint
+Type `cv.mylasso <- cv.glmnet(as.matrix(data2train[, 2:91]), data2train[, 1], alpha = 1)`, and press Enter.
+
+--- &cmd_question
+Plot `cv.mylasso` to visualize the change of mean squared error against `lambda`.
+
+```{r}
+plot(cv.mylasso)
+```
+
+*** .hint
+Type `plot(cv.mylasso)`, and press Enter.
+
+
+--- &text
+Observe from the figure that mean squared error has an increasing trend in general with increased values of lambda, and this implies that we migh end up with a pretty small value of lambda, and also suggests that lasso might not have done a lot of work to this dataset compared with a ordinary least square. We will observe this fact in later results as well.
+
+--- &cmd_question
+Take `lambda.min` from `cv.mylasso`, and assign it to `best_lambda`.
+
+```{r}
+best_lambda <- cv.mylasso$lambda.min
+```
+
+*** .hint
+Type `best_lambda <- cv.mylasso$lambda.min`, and press Enter.
+
+--- &cmd_question
+Take the estimated coefficients corresponding to `best_lambda` in `mylasso`, and assign it to a variable named `mylassocoef`. Use fuction `coef()`.
+
+```{r}
+mylassocoef <- coef(mylasso)[, mylasso$lambda == best_lambda]
+```
+
+*** .hint
+Type `mylassocoef <- coef(mylasso)[, mylasso$lambda == best_lambda]`, and press Enter.
+
+--- &cmd_question
+Type `sum(mylassocoef == 0)`, and observe that this dataset might not be the best one to illustrate lasso, since only one parameter is thresheld. However, I only wish to go through the whole process of applying lasso by using this dataset. Hopefully you will find something else that lasso works much better on.
+
+```{r}
+sum(mylassocoef == 0)
+```
+
+*** .hint
+Type `sum(mylassocoef == 0)`, and press Enter.
+
+--- &cmd_question
+Now, let's see the prediction behavior by plot predicted values againt true values in `data2test`.
+
+```{r}
+plot(as.matrix(cbind(1, data2test[, 2:91])) %*% mylassocoef, data2test[, 1])
+```
+
+*** .hint
+Type `plot(as.matrix(cbind(1, data2test[, 2:91])) %*% mylassocoef, data2test[, 1])`, and press Enter.
+
+--- &cmd_question
+Add a "y = x" line using function `abline`.
+
+```{r}
+abline(0, 1)
+```
+
+*** .hint
+Type `abline(0, 1)`, and press Enter.
+
+--- &text
+Now we have gone through an real data example that illstrates the process of doing a lasso (linear) in R. I would also like to convey through this example the message about the limitation of lasso as in a linear regression setting. Actually, the "failure" of lasso might be due to the fact that we are doing a linear regression, and the prediction might be improved from doing a generalized linear lasso. 
+
+--- &text
+Congratulations on finishing this lesson! Hope you enjoyed this lesson and have got to know some basics about how to implement "linear" lasso in R on real data. And hope this lesson would be useful to you in the future.
+

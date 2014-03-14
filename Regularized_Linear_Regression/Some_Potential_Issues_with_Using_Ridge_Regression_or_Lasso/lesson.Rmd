@@ -1,0 +1,39 @@
+Lesson Name:  Some Potential Issues with Using Ridge Regression or Lasso
+Course Name:  Regularized Linear Regression
+Type:         Standard
+Author:       Your name goes here
+Organization: The name of your organization goes here (optional)
+Version:      2.1.1
+================================================================
+
+--- &text
+In this lesson, we will be talking about some potential issues with Ridge Regression or Lasso. It will be mainly me talking, and would strongly encourage the learner to do some reading about it if interested.
+
+--- &mult_question
+As I talked about in lesson 1, the main purposes for using regularized linear regression do not include ...
+
+_1. reducing bias_
+2. improving interpretability
+3. reducing variance
+4. singularity of design matrix
+
+*** .hint
+"Reducing bias" is not included.
+
+--- &text
+"Singularity" is something we did not talk about in lesson 1, but rather an important matter due to the popularity of big data.
+
+--- &text
+Of course, as we have seen in lesson 3, these two methods as in a linear regression setting only work well when this prerequisite of "linear regression" is sa tisfied (not in the sense that linear model can be fit well, but that data should have a nice linear relationship if not for the problems of singularity, interpretability, or large variance we are having), that is to say, if the data is not suitable for a linear regression method in the beginning, using ridge regression or lasso would not help to circumvent that.
+
+--- &text
+In the light of data analysis, we would consider using ridge regression when we believe to have multilinear variables, and would consider using lasso when there are a large amount of variables and we believe that only a small subset of coefficients to be estimated have non-zero values, or to put it in a more formal term, that the coefficients to be estimated are sparse.
+
+--- &text
+Given that, it would not be appropriate to use ridge regression or lasso when these problems are not a concern. A potential issue I would like to point out with these two methods is misuse. And knowing when to use it rather than using it everywhere would help resolve this issue.
+
+--- &text
+However, I am no expert in this matter. Though I have looked in depth for literatures that talk about potential issues with these two methods, it is the "best" issue that I come up with. But I highly suspect that these two methods are being overrated just because the popularity of big data today, and some other issues exist. I strongly encourage the learner to not take my words, and watch out for any other issues in his or her future related work.
+
+--- &text
+Congratulations on finishing lesson 4, and also the whole short course on regularized linear regression! I sincerely hope that you have enjoyed and have learnt something.

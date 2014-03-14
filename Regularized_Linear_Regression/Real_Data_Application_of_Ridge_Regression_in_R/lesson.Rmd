@@ -1,0 +1,233 @@
+Lesson Name:  Real Data Application of Ridge Regression in R
+Course Name:  Regularized Linear Regression
+Type:         Standard
+Author:       Yuxin(Daisy) Zhu
+Organization: Johns Hopkins University Department of Biostatistics
+Version:      2.1.1
+================================================================
+
+
+--- &text
+Welcome to lesson 2! In this lesson, we will see a real data example using the Auto-Mpg dataset on UCI repository, and implementing the ridge (linear) regression method.
+
+--- &text
+We will be splitting the data set into a training half and a testing half, fitting a ridge regression model on the training set, and examining the prediction of such a method using the estimated coefficients and the testing set. The package we will be using is `MASS`, and the main function for regression is `lm.ridge()`.
+
+--- &text
+Let's get started with the data!
+
+--- &cmd_question
+Download the data from UCI repository using function `download.file()`, and url "http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data", save it the file "data1.txt"
+
+```{r}
+download.file("http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data", destfile = "data1.txt")
+```
+
+*** .hint
+Type `download.file("http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data", destfile = "data1.txt")`, and press enter.
+
+--- &cmd_question
+Read the data into `data1` using function `read.table()`.
+
+```{r}
+data1 <- read.table("data1.txt")
+```
+
+*** .hint
+Type `data1 <- read.table("data1.txt")`, and press Enter.
+
+--- &text
+The data we have does not contain any missing value and therefore won't bring up any complicating issues. The attribute we want to predict is mpg which corresponds to the first column of data. We are going to regress mpg over cylinders, displacement, horsepower, weight, and acceleration, which correspond to the second through sixth columns of our data.
+
+--- &cmd_question
+Take the first through sixth columns of `data1` and assign it to `data1`.
+
+```{r}
+data1 <- data1[, c(1:6)]
+```
+
+*** .hint
+Type `data1 <- data1[, c(1:6)]`, and press Enter.
+
+--- &cmd_question
+Make the type of data `numeric`, and make it a 398*6 matrix and assign it to `data1`, and then make it a data.frame. Use functions `matrix()`, `as.numeric()`, `unlist()`, and `as.data.frame()`.
+
+```{r}
+data1 <- as.data.frame(matrix(as.numeric(unlist(data1)), 398, 6))
+```
+
+*** .hint
+Type `data1 <- matrix(as.numeric(unlist(data1)), 398, 6)`, and press Enter.
+
+--- &cmd_question
+Assign "mpg" to the first element of the name of `data1`. Use function `names()`.
+
+```{r}
+names(data1)[1] <- "mpg"
+```
+
+*** .hint
+Type `names(data1)[1] <- "mpg"`, and press Enter.
+
+--- &cmd_question
+Sample a training dataset of sample size 199 from `data1`, without replacement, which is default. To do so, first set seed to 37.
+
+```{r}
+set.seed(37)
+```
+
+*** .hint
+Type `set.seed(37)`
+
+ 
+--- &cmd_question
+Now, use function `sample()` to get an index of length 199 from `c(1:398)`, and assign it to `train`.
+
+```{r}
+train <- sample(c(1:398), 199)
+```
+
+*** .hint
+Type `train <- sample(c(1:398), 199)`, and press Enter.
+
+--- &cmd_question
+Assign the rest of the index to `test`.
+
+```{r}
+test <- c(1:398)[-train]
+```
+
+*** .hint
+Type `test <- c(1:398)[-train]`, and press Enter.
+
+--- &cmd_question
+Assign `data1` rows with index in `train` to `data1train`, which is the training dataset.
+
+```{r}
+data1train <- data1[train, ]
+```
+
+*** .hint
+Type `data1train <- data1[train, ]`, and press Enter.
+
+--- &cmd_question
+Assign `data1` rows with index in `test` to `data1test`, which is the testing set.
+
+```{r}
+data1test <- data1[test, ]
+```
+
+*** .hint
+Type `data1test <- data1[test, ]`, and press Enter.
+
+--- &text
+We will be using the training set `data1train` to fit the model, and use the testing set `data1test` to see the behavior of predictions.
+
+--- &text
+Let's get started with using the `MASS` package.
+
+--- &cmd_question
+Install package `MASS` using function `install.packages()`. Do not restart R session.
+
+```{r}
+install.packages("MASS")
+```
+
+*** .hint
+Type `install.packages("MASS")`, and press Enter.
+
+--- &cmd_question
+Load package `MASS` using function `library()`
+
+```{r}
+library(MASS)
+```
+
+*** .hint
+Type `library(MASS)`, and press Enter.
+
+
+--- &cmd_question
+Regress `mpg` over the rest of the columns in `data1train`, using function `lm.ridge()`. Use formula `mpg ~ .`, let `lambda = seq(0, 200, 0.01)`, and assign the object to `myridges`.
+
+```{r}
+myridges <- lm.ridge(mpg ~ ., data1train, lambda = seq(0, 200, 0.01))
+```
+
+*** .hint
+Type `myridges <- lm.ridge(mpg ~ ., data1train, lambda = seq(0, 200, 0.01))`, and press Enter.
+
+--- &cmd_question
+Plot `myridges`.
+
+```{r}
+plot(myridges)
+```
+
+*** .hint
+Type `plot(myridges)`, and press Enter.
+
+--- &text
+The x-axis of this plot represents the value of our tuning parameter `lambda`(in this case, every unit represents 0.01), and the y-axis are the value of coefficients estimated with each tuning parameter value. We can observe from this plot the trend of parameter estimator shifts with an increasing value of `lambda`, and would give us an intuition of what value to pick for `lambda`. One thing to note that the y-axis are not on the original scale of parameters, but rather transformed somehow.
+
+--- &cmd_question
+To formally pick value of `lambda` for the tuning parameter, we could use the function `select()` on `myridges`.
+
+```{r}
+select(myridges)
+```
+
+*** .hint
+Type `select(myridges)`, and press Enter.
+
+--- &text
+Now, look at the printed lines from `select(myridges)`. The returned has given us the values of two estimators, and the value of `lambda` at which the GCV, the generalized cross validation, is smallest, within our range of `lambda`. This process can be viewed as model selection in this specific context, and I am leaving the technical details for the learner to explore if he or she is interested. And read from the lines, we know the "best" tuning parameter value is 3.08.
+
+--- &cmd_question
+Use `lambda = 3.08`, and fit one ridge regression of `mpg` over the rest of the attributes from `data1train`, using formula `mpg ~ .`. Assign the object to `myridge`
+
+```{r}
+myridge <- lm.ridge(mpg ~ ., data1train, lambda = 3.08)
+```
+
+*** .hint
+Type `myridge <- lm.ridge(mpg ~ ., data1train, lambda = 3.08)`, and press Enter.
+
+--- &cmd_question
+Take the coefficients estimated from this method using `coef()`, and assign it to `myridgecoef`.
+
+```{r}
+myridgecoef <- coef(myridge)
+```
+
+*** .hint
+Type `myridgecoef <- coef(myridge)`, and press Enter.
+
+--- &text
+Now, let's compare predicted values from ridge regression against the true values of `mpg` using our testing dataset `data1test`.
+
+--- &cmd_question
+Plot `as.matrix(cbind(rep(1, 199), data1test[, 2:6])) %*% myridgecoef`, which are the calculated predicted values, against `data1test[, 1]`, which are the true values.
+
+```{r}
+plot(as.matrix(cbind(rep(1, 199), data1test[, 2:6])) %*% myridgecoef, data1test[, 1])
+```
+
+*** .hint
+Type `plot(as.matrix(cbind(rep(1, 199), data1test[, 2:6])) %*% myridgecoef, data1test[, 1])`, and press Enter.
+
+--- &cmd_question
+Add a "y = x" line using function `abline`.
+
+```{r}
+abline(0, 1)
+```
+
+*** .hint
+Type `abline(0, 1)`, and press Enter.
+
+--- &text
+We can see that the prediction worked pretty well.
+
+--- &text
+We have gone through a real data analysis example using ridge linear regression, and have investigated its behavior in predicting. Congratulations! And hope this lesson would be useful to you in the future.
